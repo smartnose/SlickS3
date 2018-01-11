@@ -3,7 +3,11 @@ package org.slicks3
 import shapeless.PolyDefns.{->, ~>}
 import shapeless.labelled.FieldType
 import shapeless.ops.hlist.Mapper
-import shapeless.{Const, HList, HNil, Id, LabelledGeneric, Poly1, PolyDefns, Witness, ::}
+import shapeless.ops.record.Keys
+import shapeless.ops.tuple.ToTraversable
+import shapeless.tag.Tagged
+import shapeless.{::, Const, HList, HNil, Id, LabelledGeneric, Lens, Poly1, PolyDefns, Witness}
+
 
 case class Partition[T](name: String, value: T)
 
@@ -42,13 +46,6 @@ object FieldEncoder {
   }
 }
 
-/* trait DefaultTranscoders {
-  implicit val stringTranscoder: Transcoder[String] = Transcoder(_ => "String")
-  implicit val intTranscoder: Transcoder[Int] = Transcoder(_ => "Int")
-} */
-
-
-
 trait ClassEncoder[T] {
   def encode(v: T): List[EncodedField]
 }
@@ -57,6 +54,8 @@ object ClassEncoder {
   def instance[T](func: T => List[EncodedField]): ClassEncoder[T] = new ClassEncoder[T] {
     override def encode(v: T): List[EncodedField] = func(v)
   }
+
+  def apply[T](implicit encoder: ClassEncoder[T]): ClassEncoder[T] = encoder
 }
 
 trait HListEncoders {
@@ -74,7 +73,39 @@ object DefaultEncoders extends HListEncoders {
   implicit val intFieldEncoder: FieldEncoder[Int] = FieldEncoder.fromEncoder[Int](Encoder.instance[Int]((v: Int) => v.toString))
   implicit val intClassEncoder = fieldEncoder2ClassEncoder(intFieldEncoder)
   implicit val strClassEncoder = fieldEncoder2ClassEncoder(strFieldEncoder)
+}
 
+object PathEncoder {
+  def encode[T, R <:HList, MR <: HList](data: T)(implicit gen: LabelledGeneric.Aux[T, R], mapper: Mapper.Aux[Convert2Field.type, R, MR], encoder: ClassEncoder[MR]): Seq[EncodedField] = {
+    // val gen = LabelledGeneric[T]
+    //return gen.to(data)
+    val fields: MR = gen.to(data).map(Convert2Field)
+    encoder.encode(fields)
+  }
+}
+
+case class FieldHolder[T](name: String, value: Option[T])
+
+
+trait MkFieldHolder[T] {
+  type Repr
+  def create: Repr
+}
+
+object symbolName extends Poly1 {
+  implicit def atTaggedSymbol[T](implicit wk: Witness.Aux[T]) = at[Symbol with Tagged[T]](_ => FieldHolder(wk.value.toString, None))
+}
+
+object PathPrefixSyntax {
+  implicit def mkPrefix[T, Repr<:HList, KeysRepr<: HList, MapperRepr <: HList]
+    (implicit  gen: LabelledGeneric.Aux[T, Repr],
+      keys: Keys.Aux[Repr, KeysRepr],
+       mapper: Mapper.Aux[symbolName.type, KeysRepr, MapperRepr]) = new MkFieldHolder[T] {
+    override type Repr = MapperRepr
+    def create = keys().map(symbolName)
+  }
+
+  def apply[T](implicit s: MkFieldHolder[T]) = s.create
 }
 
 
