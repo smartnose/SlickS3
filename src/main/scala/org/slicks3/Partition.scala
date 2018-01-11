@@ -2,7 +2,7 @@ package org.slicks3
 
 import shapeless.PolyDefns.{->, ~>}
 import shapeless.labelled.FieldType
-import shapeless.ops.hlist.Mapper
+import shapeless.ops.hlist.{IsHCons, Mapper}
 import shapeless.ops.record.Keys
 import shapeless.ops.tuple.ToTraversable
 import shapeless.tag.Tagged
@@ -108,6 +108,10 @@ object PathPrefixSyntax {
   def apply[T](implicit s: MkFieldHolder[T]) = s.create
 }
 
+
+object PathPrefixBuilder {
+  def head[T <: HList](h:T)(implicit c: IsHCons[T]) = h.head
+}
 
 
 

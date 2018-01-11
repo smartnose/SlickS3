@@ -18,7 +18,9 @@ object Runner {
 
     import PathPrefixSyntax._
     println(PathPrefixSyntax.apply[Person])
+    val list = PathPrefixSyntax.apply[Person]
 
-    
+    val head = PathPrefixBuilder.head(list)
+
   }
 }
