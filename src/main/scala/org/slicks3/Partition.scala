@@ -1,7 +1,7 @@
 package org.slicks3
 
 import shapeless.PolyDefns.{->, ~>}
-import shapeless.labelled.FieldType
+import shapeless.labelled.{FieldType, KeyTag}
 import shapeless.ops.hlist.{IsHCons, Mapper}
 import shapeless.ops.record.Keys
 import shapeless.ops.tuple.ToTraversable
@@ -92,25 +92,28 @@ trait MkFieldHolder[T] {
   def create: Repr
 }
 
-object symbolName extends Poly1 {
-  implicit def atTaggedSymbol[T](implicit wk: Witness.Aux[T]) = at[Symbol with Tagged[T]](_ => FieldHolder(wk.value.toString, None))
-}
-
 object PathPrefixSyntax {
-  implicit def mkPrefix[T, Repr<:HList, KeysRepr<: HList, MapperRepr <: HList]
+  implicit def mkPrefix[T, Repr<:HList, KeysRepr<: HList]
     (implicit  gen: LabelledGeneric.Aux[T, Repr],
-      keys: Keys.Aux[Repr, KeysRepr],
-       mapper: Mapper.Aux[symbolName.type, KeysRepr, MapperRepr]) = new MkFieldHolder[T] {
-    override type Repr = MapperRepr
-    def create = keys().map(symbolName)
+      keys: Keys.Aux[Repr, KeysRepr]) = new MkFieldHolder[T] {
+    override type Repr = KeysRepr
+    def create = keys()
   }
 
   def apply[T](implicit s: MkFieldHolder[T]) = s.create
 }
 
+case class PinnedList[H <: HList, T <: HList](head: H, tail: T)
 
 object PathPrefixBuilder {
   def head[T <: HList](h:T)(implicit c: IsHCons[T]) = h.head
+
+  def pin[V,  H <: Symbol, T<: HList](h: H::T, v: V)(implicit c: IsHCons.Aux[H::T, H, T]): Option[V] = Some(v)
+
+  //def pin1[V,  H <: V with KeyTag[Symbol, V], T<: HList](h: H::T, v: V)(implicit c: IsHCons.Aux[H::T, H, T]): H = h.head
+
+  def pinRecursive[V,  H <: HList, T<: HList](list: PinnedList[H, Option[V]::T], v: V)(implicit c: IsHCons.Aux[Option[V]::T, Option[V], T]):
+    PinnedList[H::Option[V]::HNil, T] = PinnedList(list.head::Some(v):: HNil, list.tail.tail)
 }
 
 
