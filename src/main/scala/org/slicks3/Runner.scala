@@ -3,7 +3,7 @@ package org.slicks3
 import shapeless.{::, Default, HNil, LabelledGeneric, Poly1, Witness}
 import shapeless.labelled.FieldType
 
-case class Person(name: String, age: Int)
+case class Person(name: String = "test", age: Int = 20)
 
 
 object Runner {
@@ -34,5 +34,13 @@ object Runner {
     import PathPrefixBuilder._
     val result = PathPrefixBuilder.pinRecursive(start, "test")
     println(result)
+
+    val listRecord = AsListRecord[Person].apply()
+    println(listRecord)
+
+    import shapeless.record._
+    import shapeless.syntax.singleton._
+    import shapeless._
+    println(listRecord('name))
   }
 }
