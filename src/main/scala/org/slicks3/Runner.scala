@@ -35,12 +35,15 @@ object Runner {
     val result = PathPrefixBuilder.pinRecursive(start, "test")
     println(result)
 
-    val listRecord = AsListRecord[Person].apply()
+    val listRecord = AsExpandable[Person].apply()
     println(listRecord)
 
     import shapeless.record._
     import shapeless.syntax.singleton._
     import shapeless._
+    import labelled._
     println(listRecord('name))
+    println(listRecord.head :: ('bar ->> true) :: HNil)
+    println(listRecord.updated('name, List("wei", "liu")))
   }
 }

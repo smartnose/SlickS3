@@ -4,14 +4,14 @@ import shapeless.{Default, DefaultSymbolicLabelling, DepFn1, HList, HNil}
 import shapeless._
 import shapeless.labelled.{FieldType, field}
 
-trait AsListRecord[T] extends DepFn0 with Serializable {
+trait AsExpandable[T] extends DepFn0 with Serializable {
   type Out <: HList
 }
 
-object AsListRecord {
-  def apply[T](implicit default: AsListRecord[T]): Aux[T, default.Out] = default
+object AsExpandable {
+  def apply[T](implicit default: AsExpandable[T]): Aux[T, default.Out] = default
 
-  type Aux[T, Out0 <: HList] = AsListRecord[T] { type Out = Out0 }
+  type Aux[T, Out0 <: HList] = AsExpandable[T] { type Out = Out0 }
 
   trait Helper[L <: HList, Labels <: HList] extends DepFn1[L] with Serializable {
     type Out <: HList
@@ -47,13 +47,13 @@ object AsListRecord {
       }
   }
 
-  implicit def asRecord[T, Labels <: HList, Options <: HList, Rec <: HList]
+  implicit def asExpandable[T, Labels <: HList, Options <: HList, Rec <: HList]
   (implicit
    default: Default.Aux[T, Options],
    labelling: DefaultSymbolicLabelling.Aux[T, Labels],
    helper: Helper.Aux[Options, Labels, Rec]
   ): Aux[T, Rec] =
-    new AsListRecord[T] {
+    new AsExpandable[T] {
       type Out = Rec
       def apply() = helper(default())
     }
